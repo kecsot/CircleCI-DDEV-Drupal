@@ -4,7 +4,7 @@ langcode: hu
 uuid: 726df3bb-a237-4132-b873-97c46befb4d5
 name: 'Drupal Website '
 mail: kecsot08@gmail.com
-slogan: 'Slogan set from localhost'
+slogan: 'Slogan set from remote'
 page:
   403: ''
   404: ''
