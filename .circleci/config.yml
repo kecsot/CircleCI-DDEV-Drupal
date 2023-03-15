@@ -1,0 +1,131 @@
+version: 2.1
+
+# Lint
+job_lint: &job_lint
+  lint:
+    docker:
+      - image: cimg/php:8.1.15
+    steps:
+      - checkout
+      - run:
+          name: Install composer
+          command: |
+            curl -sS  https://getcomposer.org/installer -o composer-setup.php
+            sudo php composer-setup.php --filename=composer --install-dir=/usr/local/bin --2.2
+            sudo rm composer-setup.php
+            composer install
+
+      - run:
+          name: phpstan
+          command:
+            vendor/bin/phpstan analyse
+
+      - run:
+          name: phpcs
+          command:
+            vendor/bin/phpcs
+
+# Test inside ddev
+job_test: &job_test
+  test:
+    machine:
+      image: ubuntu-2004:current
+    environment:
+      DDEV_NONINTERACTIVE: "true"
+    steps:
+      - checkout
+      - run:
+          name: DDEV composer
+          command: |
+            curl -LO https://raw.githubusercontent.com/drud/ddev/master/scripts/install_ddev.sh && bash install_ddev.sh
+            rm install_ddev.sh
+
+      - run:
+          name: Prepare DDEV
+          command: |
+            ddev start
+            ddev composer install
+
+      - run:
+          name: PHPUnit
+          command: |
+            ddev phpunit web/modules/custom/ --testdox --do-not-cache-result
+
+# Deploy
+maintenance_on: &maintenance_on
+  run:
+    name: Maintenance Mode ON
+    command: |
+      sh ./ci-scripts/maintenance.sh 1
+
+maintenance_off: &maintenance_off
+  run:
+    name: Maintenance Mode OFF
+    command: |
+      sh ./ci-scripts/maintenance.sh 0
+
+backup_files: &backup_files
+  run:
+    name: Backup DB and Files
+    command: |
+      sh ./ci-scripts/backup-files.sh
+
+git_config: &git_config
+  run:
+    name: 'Git config'
+    command: |-
+      git config --global user.email 'kecsot08@gmail.com'
+      git config --global user.name  'CircleCI'
+      git config --global log.date   'iso'
+
+lookup_remote_changes: &lookup_remote_changes
+  run:
+    name: Lookup Remote Changes
+    command: |
+      sh ./ci-scripts/lookup-remote-changes.sh
+
+apply_new_changes: &apply_new_changes
+  run:
+    name: Apply New Changes
+    command: |
+      sh ./ci-scripts/apply-new-changes.sh
+
+job_deploy: &job_deploy
+  deploy:
+    docker:
+      - image: cimg/base:stable
+    environment:
+      FOLDER_PROJECT: /var/www/Drupal-CircleCI-Deploy
+      FOLDER_BACKUP: /home/backup
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "c4:96:5d:30:ff:47:27:04:2b:b0:83:21:5c:3e:0c:32"
+      - *maintenance_on
+      - *backup_files
+      - *git_config
+      - *lookup_remote_changes
+      - *apply_new_changes
+      - *maintenance_off
+jobs:
+  <<: *job_lint
+  <<: *job_test
+  <<: *job_deploy
+
+workflows:
+  workflow:
+    jobs:
+      - lint
+      - test:
+          filters:
+            branches:
+              ignore:
+                - main
+      - deploy:
+          filters:
+            branches:
+              only:
+                - main
+
+# TODO: ssh errors not throw in CI

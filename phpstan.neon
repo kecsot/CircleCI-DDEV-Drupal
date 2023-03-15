@@ -1,0 +1,16 @@
+includes:
+	- vendor/mglaman/phpstan-drupal/extension.neon
+parameters:
+  level: 6
+  checkMissingIterableValueType: false
+  reportUnmatchedIgnoredErrors: false
+  paths:
+    - web
+  excludePaths:
+    - '*.api.php'
+    - '*/tests/fixtures/*.php'
+    - 'web/core/*'
+    - 'web/modules/contrib/*'
+    - 'web/libraries/*'
+    - 'web/sites/default/*'
+    - 'web/sites/simpletest/*'
