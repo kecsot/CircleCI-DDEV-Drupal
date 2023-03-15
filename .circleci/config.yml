@@ -101,7 +101,7 @@ job_deploy: &job_deploy
       - checkout
       - add_ssh_keys:
           fingerprints:
-            - "c4:96:5d:30:ff:47:27:04:2b:b0:83:21:5c:3e:0c:32"
+            - "c2:7e:33:ca:98:c8:51:10:b7:21:fe:06:3f:82:54:0f"
       - *maintenance_on
       - *backup_files
       - *git_config
